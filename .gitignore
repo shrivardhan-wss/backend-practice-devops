@@ -5,5 +5,4 @@ dist
 .DS_Store
 .vscode
 
-docker-compose.yaml
-dockerfile
+certbot/
