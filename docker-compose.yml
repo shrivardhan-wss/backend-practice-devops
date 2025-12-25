@@ -1,48 +1,41 @@
 version: "3.8"
 
 services:
-  mongo:
-    image: mongo:7
-    container_name: mongo
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: pass123
-      MONGO_INITDB_DATABASE: sampleDb
-    volumes:
-      - mongo_data:/data/db
-
   backend:
     build: .
     container_name: backend
     restart: always
-    environment:
-      MONGO_URL: mongodb://root:pass123@mongo:27017/sampleDb?authSource=admin
-      PORT: 3333
-    depends_on:
-      - mongo
+    env_file:
+      - .env
+    expose:
+      - "3333"
 
   nginx:
     image: nginx:latest
     container_name: nginx
     restart: always
     ports:
-    - "80:80"
-    - "443:443"
+      - "80:80"
+      - "443:443"
     volumes:
-    - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    - ./certbot/conf:/etc/letsencrypt
-    - ./certbot/www:/var/www/certbot
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     depends_on:
-    - backend
+      - backend
 
   certbot:
     image: certbot/certbot
     container_name: certbot
+    depends_on:
+      - nginx
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-
-
-volumes:
-  mongo_data:
+    entrypoint: >
+      /bin/sh -c "trap exit TERM;
+      while :; do
+        certbot renew;
+        sleep 12h;
+      done"
+  
